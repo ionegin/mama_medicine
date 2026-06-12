@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Результаты анализов</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --cream:   #fdf4f0;
+    --blush:   #f7d9d0;
+    --rose:    #e8a8a0;
+    --petal:   #d4748a;
+    --deep:    #b05070;
+    --leaf:    #7da87a;
+    --text:    #4a3040;
+    --muted:   #9a7880;
+    --white:   #fff;
+    --good:    #6aaa72;
+    --warn:    #d4974a;
+    --bad:     #c95068;
+    --neutral: #8897b0;
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--cream);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── FLOATING PETALS ── */
+  .petals-bg {
+    position: fixed; inset: 0; pointer-events: none; z-index: 0; overflow: hidden;
+  }
+  .petal {
+    position: absolute;
+    border-radius: 50% 0 50% 0;
+    opacity: 0;
+    animation: fall linear infinite;
+  }
+  @keyframes fall {
+    0%   { transform: translateY(-60px) rotate(0deg); opacity: 0; }
+    10%  { opacity: .55; }
+    90%  { opacity: .35; }
+    100% { transform: translateY(110vh) rotate(540deg); opacity: 0; }
+  }
+
+  /* ── HERO ── */
+  .hero {
+    position: relative; z-index: 1;
+    padding: 64px 24px 48px;
+    text-align: center;
+  }
+  .hero-flowers {
+    display: flex; justify-content: center; align-items: center; gap: 0;
+    margin-bottom: 24px;
+  }
+  .hero-flowers svg { width: 90px; height: 90px; }
+  .hero-flowers svg:nth-child(2) { width: 120px; height: 120px; z-index: 2; position: relative; }
+
+  .hero-title {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(2rem, 5vw, 3.2rem);
+    color: var(--deep);
+    line-height: 1.15;
+    margin-bottom: 8px;
+  }
+  .hero-title em {
+    font-style: italic;
+    color: var(--petal);
+  }
+  .hero-sub {
+    font-size: 1.05rem;
+    color: var(--muted);
+    font-weight: 300;
+    letter-spacing: .03em;
+  }
+
+  /* ── DIVIDER ── */
+  .divider {
+    position: relative; z-index: 1;
+    display: flex; align-items: center; gap: 16px;
+    max-width: 720px; margin: 0 auto 40px; padding: 0 24px;
+  }
+  .divider-line { flex: 1; height: 1px; background: var(--blush); }
+  .divider-icon { color: var(--rose); font-size: 1.2rem; }
+
+  /* ── LEGEND ── */
+  .legend {
+    position: relative; z-index: 1;
+    display: flex; gap: 20px; flex-wrap: wrap; justify-content: center;
+    margin-bottom: 32px; padding: 0 24px;
+  }
+  .legend-item {
+    display: flex; align-items: center; gap: 7px;
+    font-size: .8rem; color: var(--muted);
+  }
+  .legend-dot {
+    width: 10px; height: 10px; border-radius: 50%;
+  }
+
+  /* ── SECTION TITLE ── */
+  .section-title {
+    position: relative; z-index: 1;
+    font-family: 'Playfair Display', serif;
+    font-size: 1.3rem; color: var(--petal);
+    text-align: center;
+    margin: 0 auto 16px; padding: 0 24px;
+    letter-spacing: .04em;
+  }
+
+  /* ── TABLE WRAPPER ── */
+  .table-wrap {
+    position: relative; z-index: 1;
+    max-width: 860px; margin: 0 auto 48px; padding: 0 16px;
+  }
+
+  /* ── TABLE ── */
+  table {
+    width: 100%; border-collapse: collapse;
+    background: rgba(255,255,255,.72);
+    backdrop-filter: blur(8px);
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 8px 40px rgba(180,100,120,.10);
+  }
+  thead tr {
+    background: linear-gradient(135deg, var(--blush), #f9e8e4);
+  }
+  thead th {
+    padding: 14px 16px;
+    font-size: .78rem; font-weight: 600;
+    text-transform: uppercase; letter-spacing: .07em;
+    color: var(--deep);
+    text-align: left;
+  }
+  thead th:not(:first-child) { text-align: center; }
+
+  tbody tr {
+    border-bottom: 1px solid rgba(232,168,160,.2);
+    cursor: default;
+    transition: background .25s, transform .2s;
+    position: relative;
+  }
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover {
+    background: rgba(247,217,208,.45);
+    transform: scale(1.005);
+    z-index: 2;
+  }
+
+  td {
+    padding: 13px 16px;
+    font-size: .88rem;
+    vertical-align: middle;
+  }
+  td:not(:first-child) { text-align: center; }
+
+  .param-name {
+    font-weight: 500; color: var(--text);
+    display: flex; flex-direction: column; gap: 2px;
+  }
+  .param-unit {
+    font-size: .72rem; color: var(--muted); font-weight: 300;
+  }
+  .ref {
+    font-size: .75rem; color: var(--muted);
+  }
+  .val { font-weight: 600; }
+  .val-new { font-size: .92rem; }
+
+  .badge {
+    display: inline-block;
+    padding: 3px 10px; border-radius: 30px;
+    font-size: .78rem; font-weight: 600;
+  }
+  .badge-good  { background: #e6f5e8; color: #3a7a40; }
+  .badge-warn  { background: #fdf0e0; color: #a06020; }
+  .badge-bad   { background: #fde8ec; color: #9a2040; }
+  .badge-na    { background: #f0f0f8; color: #7080a0; }
+
+  .delta { font-size: .85rem; font-weight: 600; }
+  .delta-good  { color: var(--good); }
+  .delta-warn  { color: var(--warn); }
+  .delta-bad   { color: var(--bad); }
+  .delta-new   { color: var(--neutral); font-style: italic; font-weight: 400; }
+
+  /* ── TOOLTIP ── */
+  .tooltip-wrap { position: relative; }
+
+  .tooltip-content {
+    display: none;
+    position: absolute;
+    left: 50%; top: calc(100% + 8px);
+    transform: translateX(-50%);
+    width: 280px;
+    background: linear-gradient(145deg, #fff7f5, #fff);
+    border: 1px solid var(--blush);
+    border-radius: 16px;
+    padding: 14px 16px;
+    box-shadow: 0 12px 40px rgba(180,80,100,.15);
+    font-size: .82rem; line-height: 1.55;
+    color: var(--text);
+    z-index: 100;
+    pointer-events: none;
+    animation: popIn .18s ease;
+  }
+  @keyframes popIn {
+    from { opacity: 0; transform: translateX(-50%) translateY(-6px); }
+    to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+  }
+  .tooltip-content::before {
+    content: '';
+    position: absolute; top: -7px; left: 50%; transform: translateX(-50%);
+    border: 7px solid transparent;
+    border-bottom-color: var(--blush);
+    border-top: none;
+  }
+  .tooltip-wrap:hover .tooltip-content { display: block; }
+
+  .tip-emoji { font-size: 1.1rem; margin-right: 5px; }
+
+  /* ── NOTE CARD ── */
+  .note-card {
+    position: relative; z-index: 1;
+    max-width: 720px; margin: 0 auto 56px; padding: 0 16px;
+  }
+  .note-inner {
+    background: linear-gradient(135deg, rgba(255,255,255,.8), rgba(253,244,240,.9));
+    border: 1px solid var(--blush);
+    border-radius: 20px;
+    padding: 28px 32px;
+    box-shadow: 0 4px 24px rgba(180,100,120,.08);
+    text-align: center;
+  }
+  .note-inner p {
+    font-size: .9rem; color: var(--muted); line-height: 1.7;
+    font-weight: 300;
+  }
+  .note-inner strong { color: var(--petal); font-weight: 600; }
+
+  /* ── FOOTER ── */
+  footer {
+    position: relative; z-index: 1;
+    text-align: center; padding: 32px 24px 48px;
+    font-size: .78rem; color: var(--muted); letter-spacing: .04em;
+  }
+  footer span { color: var(--rose); }
+</style>
+</head>
+<body>
+
+<!-- Floating petals -->
+<div class="petals-bg" id="petals"></div>
+
+<!-- Hero -->
+<header class="hero">
+  <div class="hero-flowers">
+    <!-- Left small flower -->
+    <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+      <g transform="translate(50,50)">
+        <ellipse rx="18" ry="9" fill="#f0adb8" opacity=".9" transform="rotate(0)"/>
+        <ellipse rx="18" ry="9" fill="#f0adb8" opacity=".85" transform="rotate(45)"/>
+        <ellipse rx="18" ry="9" fill="#e890a0" opacity=".8" transform="rotate(90)"/>
+        <ellipse rx="18" ry="9" fill="#e890a0" opacity=".75" transform="rotate(135)"/>
+        <circle r="10" fill="#f9d070"/>
+      </g>
+    </svg>
+    <!-- Centre big flower -->
+    <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+      <g transform="translate(60,60)">
+        <ellipse rx="24" ry="11" fill="#e8849a" opacity=".9" transform="rotate(0)"/>
+        <ellipse rx="24" ry="11" fill="#e8849a" opacity=".85" transform="rotate(36)"/>
+        <ellipse rx="24" ry="11" fill="#d86882" opacity=".85" transform="rotate(72)"/>
+        <ellipse rx="24" ry="11" fill="#d86882" opacity=".8" transform="rotate(108)"/>
+        <ellipse rx="24" ry="11" fill="#e8849a" opacity=".8" transform="rotate(144)"/>
+        <circle r="13" fill="#f9c860"/>
+        <circle r="7" fill="#f0a840"/>
+      </g>
+    </svg>
+    <!-- Right small flower -->
+    <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+      <g transform="translate(50,50)">
+        <ellipse rx="18" ry="9" fill="#f4b8c4" opacity=".9" transform="rotate(0)"/>
+        <ellipse rx="18" ry="9" fill="#f4b8c4" opacity=".85" transform="rotate(45)"/>
+        <ellipse rx="18" ry="9" fill="#eca0b0" opacity=".8" transform="rotate(90)"/>
+        <ellipse rx="18" ry="9" fill="#eca0b0" opacity=".75" transform="rotate(135)"/>
+        <circle r="10" fill="#f9d070"/>
+      </g>
+    </svg>
+  </div>
+
+  <h1 class="hero-title">Поздравляю! <em>Вы молодец!</em></h1>
+  <p class="hero-sub">Результаты анализов · сравнительная таблица</p>
+</header>
+
+<div class="divider"><div class="divider-line"></div><div class="divider-icon">✿</div><div class="divider-line"></div></div>
+
+<!-- Legend -->
+<div class="legend">
+  <div class="legend-item"><div class="legend-dot" style="background:var(--good)"></div>Улучшение / норма</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--warn)"></div>Небольшое отклонение</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--bad)"></div>Было превышено значительно</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--neutral)"></div>Только в новом анализе</div>
+</div>
+<p style="text-align:center;font-size:.78rem;color:var(--muted);margin-bottom:24px;position:relative;z-index:1;">
+  ✦ Наведите курсор на строку, чтобы увидеть комментарий
+</p>
+
+<!-- Липидный профиль -->
+<p class="section-title">✿ Липидный профиль</p>
+<div class="table-wrap">
+<table>
+  <thead>
+    <tr>
+      <th>Показатель</th>
+      <th>Старый анализ</th>
+      <th>Новый анализ</th>
+      <th>Норма</th>
+      <th>Изменение</th>
+      <th>Статус</th>
+    </tr>
+  </thead>
+  <tbody>
+
+    <!-- Общий холестерин -->
+    <tr class="tooltip-wrap">
+      <td><div class="param-name">Общий холестерин<span class="param-unit">ммоль/л</span></div></td>
+      <td><span class="val" style="color:var(--bad)">7.23 ↑</span></td>
+      <td><span class="val val-new" style="color:var(--good)">5.19</span></td>
+      <td class="ref">≤ 5.2</td>
+      <td><span class="delta delta-good">▼ −2.04</span></td>
+      <td><span class="badge badge-good">В норме</span></td>
+      <div class="tooltip-content">
+        <span class="tip-emoji">🌸</span><strong>Отличный результат!</strong><br>
+        Снижение на 2 ммоль/л — это серьёзная работа. Холестерин вернулся в норму.
+        Вероятно, помогли статины или изменение питания: меньше насыщенных жиров, больше овощей и клетчатки.
+      </div>
+    </tr>
+
+    <!-- ЛПНП -->
+    <tr class="tooltip-wrap">
+      <td><div class="param-name">ЛПНП <em style="font-style:normal;font-size:.72rem;color:var(--muted)">(«плохой» холестерин)</em><span class="param-unit">ммоль/л</span></div></td>
+      <td><span class="val" style="color:var(--bad)">5.20 ↑</span></td>
+      <td><span class="val val-new" style="color:var(--good)">3.24</span></td>
+      <td class="ref">0.50–3.40</td>
+      <td><span class="delta delta-good">▼ −1.96</span></td>
+      <td><span class="badge badge-good">В норме</span></td>
+      <div class="tooltip-content">
+        <span class="tip-emoji">💪</span><strong>Главное достижение.</strong><br>
+        ЛПНП — это холестерин, который «прилипает» к стенкам сосудов.
+        Был критически высок — теперь в норме. Риск сердечно-сосудистых событий значительно снизился.
+      </div>
+    </tr>
+
+    <!-- Триглицериды -->
+    <tr class="tooltip-wrap">
+      <td><div class="param-name">Триглицериды<span class="param-unit">ммоль/л</span></div></td>
+      <td><span class="val" style="color:var(--bad)">2.67 ↑</span></td>
+      <td><span class="val val-new" style="color:var(--warn)">2.33 ↑</span></td>
+      <td class="ref">0.10–2.30</td>
+      <td><span class="delta delta-warn">▼ −0.34</span></td>
+      <td><span class="badge badge-warn">Чуть выше нормы</span></td>
+      <div class="tooltip-content">
+        <span class="tip-emoji">🌿</span><strong>Лучше, но ещё не финиш.</strong><br>
+        Триглицериды снизились, но остаются немного выше нормы.
+        Связаны с питанием (сахар, мучное, алкоголь) и набором веса.
+        Цель: снизить до 2.30 и ниже. Меньше быстрых углеводов — и это реально.
+      </div>
+    </tr>
+
+    <!-- ЛПВП -->
+    <tr class="tooltip-wrap">
+      <td><div class="param-name">ЛПВП <em style="font-style:normal;font-size:.72rem;color:var(--muted)">(«хороший» холестерин)</em><span class="param-unit">ммоль/л</span></div></td>
+      <td><span class="val" style="color:var(--good)">1.21</span></td>
+      <td><span class="val val-new" style="color:var(--muted)">—</span></td>
+      <td class="ref">&gt; 1.20</td>
+      <td><span class="delta delta-na" style="color:var(--muted);font-size:.8rem">нет данных</span></td>
+      <td><span class="badge badge-na">Только старый</span></td>
+      <div class="tooltip-content">
+        <span class="tip-emoji">🌼</span><strong>В прошлый раз был на грани нормы.</strong><br>
+        ЛПВП — «защитный» холестерин, убирает лишний жир из сосудов.
+        Желательно сдать в следующий раз: чем выше — тем лучше.
+        Повышают его физическая активность и омега-3.
+      </div>
+    </tr>
+
+    <!-- ЛПОНП -->
+    <tr class="tooltip-wrap">
+      <td><div class="param-name">ЛПОНП<span class="param-unit">ммоль/л</span></div></td>
+      <td><span class="val" style="color:var(--bad)">1.22 ↑</span></td>
+      <td><span class="val val-new" style="color:var(--muted)">—</span></td>
+      <td class="ref">0.26–1.04</td>
+      <td><span class="delta delta-na" style="color:var(--muted);font-size:.8rem">нет данных</span></td>
+      <td><span class="badge badge-na">Только старый</span></td>
+      <div class="tooltip-content">
+        <span class="tip-emoji">🍃</span><strong>Был повышен — данных по новому нет.</strong><br>
+        ЛПОНП вычисляется из триглицеридов. Раз триглицериды снизились,
+        ЛПОНП тоже, скорее всего, улучшился. Косвенно — хорошая новость.
+      </div>
+    </tr>
+
+  </tbody>
+</table>
+</div>
+
+<!-- Биохимия -->
+<p class="section-title">✿ Биохимия (новый анализ)</p>
+<div class="table-wrap">
+<table>
+  <thead>
+    <tr>
+      <th>Показатель</th>
+      <th>Старый анализ</th>
+      <th>Новый анализ</th>
+      <th>Норма</th>
+      <th>Изменение</th>
+      <th>Статус</th>
+    </tr>
+  </thead>
+  <tbody>
+
+    <!-- Глюкоза -->
+    <tr class="tooltip-wrap">
+      <td><div class="param-name">Глюкоза<span class="param-unit">ммоль/л</span></div></td>
+      <td><span class="val" style="color:var(--muted)">—</span></td>
+      <td><span class="val val-new" style="color:var(--warn)">5.46</span></td>
+      <td class="ref">3.90–6.40</td>
+      <td><span class="delta delta-new">новый показатель</span></td>
+      <td><span class="badge badge-warn">В норме, но следим</span></td>
+      <div class="tooltip-content">
+        <span class="tip-emoji">🍓</span><strong>Норма, но ближе к верхней границе.</strong><br>
+        В сочетании с набором веса и высокими триглицеридами — стоит следить.
+        Рекомендуется сдать <strong>инсулин натощак + HOMA-IR</strong>, чтобы исключить
+        преддиабет (инсулинорезистентность).
+      </div>
+    </tr>
+
+    <!-- Железо -->
+    <tr class="tooltip-wrap">
+      <td><div class="param-name">Железо<span class="param-unit">мкмоль/л</span></div></td>
+      <td><span class="val" style="color:var(--muted)">—</span></td>
+      <td><span class="val val-new" style="color:var(--good)">23.7</span></td>
+      <td class="ref">6.6–26</td>
+      <td><span class="delta delta-new">новый показатель</span></td>
+      <td><span class="badge badge-good">Норма</span></td>
+      <div class="tooltip-content">
+        <span class="tip-emoji">✨</span><strong>Всё хорошо.</strong><br>
+        Железо в норме — нет признаков анемии или перегрузки.
+        Хороший результат, особенно актуальный для женщин в периоде менопаузы.
+      </div>
+    </tr>
+
+    <!-- ЛДГ -->
+    <tr class="tooltip-wrap">
+      <td><div class="param-name">ЛДГ<span class="param-unit">Ед/л</span></div></td>
+      <td><span class="val" style="color:var(--muted)">—</span></td>
+      <td><span class="val val-new" style="color:var(--good)">171</span></td>
+      <td class="ref">&lt; 247</td>
+      <td><span class="delta delta-new">новый показатель</span></td>
+      <td><span class="badge badge-good">Норма</span></td>
+      <div class="tooltip-content">
+        <span class="tip-emoji">🌺</span><strong>Норма.</strong><br>
+        ЛДГ — маркер повреждения клеток (сердце, печень, мышцы).
+        171 — хорошо в пределах нормы. Нет признаков острого воспаления или некроза.
+      </div>
+    </tr>
+
+    <!-- Билирубин -->
+    <tr class="tooltip-wrap">
+      <td><div class="param-name">Билирубин общий<span class="param-unit">мкмоль/л</span></div></td>
+      <td><span class="val" style="color:var(--muted)">—</span></td>
+      <td><span class="val val-new" style="color:var(--warn)">19.69 ↑</span></td>
+      <td class="ref">5.10–19.00</td>
+      <td><span class="delta delta-new">новый показатель</span></td>
+      <td><span class="badge badge-warn">Минимальное превышение</span></td>
+      <div class="tooltip-content">
+        <span class="tip-emoji">🌸</span><strong>Превышение символическое — 0.69 выше нормы.</strong><br>
+        Скорее всего это <strong>синдром Жильбера</strong> — доброкачественная особенность,
+        встречается у ~5–10% людей. Желтухи нет? Значит, не страшно.
+        Если повторяется — стоит сделать УЗИ желчного пузыря.
+      </div>
+    </tr>
+
+    <!-- АСТ -->
+    <tr class="tooltip-wrap">
+      <td><div class="param-name">АСТ<span class="param-unit">Ед/л</span></div></td>
+      <td><span class="val" style="color:var(--muted)">—</span></td>
+      <td><span class="val val-new" style="color:var(--warn)">31.1 ↑</span></td>
+      <td class="ref">&lt; 31</td>
+      <td><span class="delta delta-new">новый показатель</span></td>
+      <td><span class="badge badge-warn">На грани</span></td>
+      <div class="tooltip-content">
+        <span class="tip-emoji">🌿</span><strong>Превышение минимальное (на 0.1).</strong><br>
+        АСТ — фермент печени и мышц. Лёгкое превышение может быть от статинов,
+        жирового гепатоза (часто при наборе веса), физической нагрузки.
+        Само по себе не тревожно, но в паре с АЛТ — повод для УЗИ печени.
+      </div>
+    </tr>
+
+    <!-- АЛТ -->
+    <tr class="tooltip-wrap">
+      <td><div class="param-name">АЛТ<span class="param-unit">Ед/л</span></div></td>
+      <td><span class="val" style="color:var(--muted)">—</span></td>
+      <td><span class="val val-new" style="color:var(--warn)">37.1 ↑</span></td>
+      <td class="ref">&lt; 34</td>
+      <td><span class="delta delta-new">новый показатель</span></td>
+      <td><span class="badge badge-warn">Чуть выше нормы</span></td>
+      <div class="tooltip-content">
+        <span class="tip-emoji">🍃</span><strong>АЛТ — более специфичный маркер печени.</strong><br>
+        37.1 при норме &lt;34 — незначительное превышение.
+        В сочетании с набором веса и повышенными триглицеридами — вероятен
+        <strong>жировой гепатоз (НАЖБП)</strong>. Не страшно, но требует внимания:
+        меньше сахара, алкоголя, больше движения. УЗИ брюшной полости подтвердит или опровергнет.
+      </div>
+    </tr>
+
+  </tbody>
+</table>
+</div>
+
+<!-- Note -->
+<div class="note-card">
+  <div class="note-inner">
+    <p>
+      Это не медицинский документ — это удобное резюме для понимания картины.<br>
+      <strong>Следующий шаг:</strong> показать динамику врачу + сдать инсулин натощак и HOMA-IR + УЗИ брюшной полости.<br><br>
+      И помните: снизить холестерин с 7.23 до 5.19 — это <strong>настоящая победа</strong> 🌸
+    </p>
+  </div>
+</div>
+
+<footer>
+  Сделано с заботой <span>✿</span> &nbsp; Данные носят информационный характер
+</footer>
+
+<script>
+// Floating petals generator
+const container = document.getElementById('petals');
+const colours = ['#f4b8c4','#e8a0b0','#fad4dc','#f0c8d0','#e8d4e0','#f9e0e8'];
+const count = 28;
+
+for (let i = 0; i < count; i++) {
+  const p = document.createElement('div');
+  p.className = 'petal';
+  const size = 8 + Math.random() * 18;
+  const left = Math.random() * 100;
+  const dur  = 8 + Math.random() * 14;
+  const delay = Math.random() * 20;
+  const colour = colours[Math.floor(Math.random() * colours.length)];
+  const scaleX = .6 + Math.random() * .8;
+
+  p.style.cssText = `
+    width:${size}px; height:${size}px;
+    left:${left}%;
+    background:${colour};
+    animation-duration:${dur}s;
+    animation-delay:${delay}s;
+    transform:scaleX(${scaleX});
+  `;
+  container.appendChild(p);
+}
+
+// Keep tooltips inside viewport
+document.querySelectorAll('.tooltip-wrap').forEach(row => {
+  const tip = row.querySelector('.tooltip-content');
+  if (!tip) return;
+  row.addEventListener('mouseenter', () => {
+    const rect = tip.getBoundingClientRect();
+    if (rect.left < 8) tip.style.left = '20px';
+    if (rect.right > window.innerWidth - 8) tip.style.left = 'auto';
+  });
+});
+</script>
+</body>
+</html>
